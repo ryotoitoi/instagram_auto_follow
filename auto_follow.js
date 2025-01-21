@@ -1,47 +1,89 @@
 (function() {
-  let currentIndex = 8; // 初期インデックス (XPathの最後の数字)
-  let isRunning = true;
+    let isRunning = true;
+    let notFoundCount = 0;
+    let currentButtonIndex = 0;
 
-  function clickFollowButton() {
-    const xpath = `/html/body/div[7]/div[2]/div/div/div[1]/div/div[2]/div/div/div/div/div[2]/div/div[3]/div/div/div[${currentIndex}]/div/div/div/div[3]/div/button`;
-    const followButton = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-    if (!followButton) {
-      console.log(`インデックス${currentIndex}のフォローボタンが見つかりませんでした。処理を停止します。`);
-      isRunning = false;
-      return;
+    // スクロール対象の要素を取得
+    const scrollTarget = document.querySelector('div[style="height: 356px; overflow: hidden auto;"] > div');
+    if (!scrollTarget) {
+        console.error("スクロール対象の要素が見つかりませんでした。");
+        return;
     }
 
-   if (followButton.textContent.trim() === 'フォロー') {
-      followButton.click();
-      console.log(`インデックス${currentIndex}のフォローボタンをクリックしました。`);
-    } else {
-       console.log(`インデックス${currentIndex}のボタンは既にフォロー済みです。`);
+    function clickNextFollowButton() {
+      const followButtons = document.querySelectorAll('button._acan._acap._acas._aj1-._ap30');
+
+        if (followButtons.length === 0) {
+              console.log('フォローボタンが見つかりませんでした。');
+             notFoundCount++;
+            if (notFoundCount > 10) {
+                  console.log("連続してボタンが見つからなかったため、処理を停止します。");
+                  isRunning = false;
+                return;
+             }
+            setTimeout(clickNextFollowButton, 1000);
+             return;
+          }
+        notFoundCount = 0;
+
+
+      if (currentButtonIndex >= followButtons.length) {
+            console.log("すべてのフォローボタンの処理が完了しました。");
+          currentButtonIndex = 0; // リセットして、最初から繰り返す
+          return;
+      }
+
+      const button = followButtons[currentButtonIndex];
+
+       if (button.textContent.trim() === 'フォロー') {
+         button.click();
+         console.log(`インデックス ${currentButtonIndex} のフォローボタンをクリックしました。`);
+       } else {
+         console.log(`インデックス ${currentButtonIndex} のボタンは既にフォロー済みです。`);
+       }
+
+      currentButtonIndex++; // 次のボタンへ進む
+        setTimeout(clickNextFollowButton, 1000); // 1秒後に次のボタンを処理
     }
 
-    currentIndex++; // 次のインデックスに進む
-  }
 
-  function autoClick() {
-    if (!isRunning) return;
-    clickFollowButton();
-    setTimeout(autoClick, 1000); // 1秒間隔で繰り返す。
-  }
-
-  autoClick();
-
-  console.log('フォローボタンの自動クリックを開始しました。');
-
-
-  window.addEventListener('beforeunload', () => {
-        isRunning = false; // ページを離れる際にフラグをオフにする
-   });
-
-  // スクリプト停止用の関数
-   window.stopAutoClick = function() {
-    isRunning = false;
-   console.log('フォローボタンの自動クリックを停止しました。');
+    function scrollPage() {
+          try {
+             scrollTarget.scrollBy(0, scrollTarget.clientHeight); // 1画面分スクロール
+             console.log("モーダル内をスクロールしました。");
+        } catch (error) {
+           console.error("スクロール時にエラーが発生しました:", error);
+        }
    }
 
+
+    function autoClickAndScroll() {
+      if (!isRunning) return;
+
+
+       try {
+             scrollPage();
+           } catch (error) {
+             console.error("スクロール時にエラーが発生しました:", error);
+           }
+       clickNextFollowButton();
+    }
+
+
+    autoClickAndScroll();
+
+    console.log('フォローボタンの自動クリックとモーダル内スクロールを開始しました。');
+
+
+
+    window.addEventListener('beforeunload', () => {
+        isRunning = false;
+    });
+
+
+      window.stopAutoClickAndScroll = function() {
+        isRunning = false;
+        console.log('フォローボタンの自動クリックとスクロールを停止しました。');
+    }
 
 })();
